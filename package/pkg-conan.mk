@@ -47,11 +47,12 @@ define inner-conan-package
 $(2)_CONF_ENV			?=
 $(2)_CONF_OPTS			?=
 $(2)_CONAN_ENV			?= CONAN_USER_HOME=$$(BASE_DIR)
-$(2)_CONAN_BUILD_POLICY	?= missing
 
 CONAN_SETTING_COMPILER 			?= gcc
 CONAN_SETTING_COMPILER_VERSION 	?=
 CONAN_SETTING_ARCH 				?= $(BR2_ARCH)
+CONAN_REMOTE					?=
+CONAN_BUILD_POLICY				?=
 
 # TODO (uilian): Use Conan privded by buildroot
 # $(2)_DEPENDENCIES += host-python-conan
@@ -101,9 +102,25 @@ else ifeq ($(BR2_ARM_CPU_ARMV8A),y)
 CONAN_SETTING_ARCH = armv8
 endif
 
+ifeq ($(CONAN_BUILD_POLICY_MISSING),y)
+CONAN_BUILD_POLICY = missing
+else ifeq ($(CONAN_BUILD_POLICY_OUTDATED),y)
+CONAN_BUILD_POLICY = outdated
+else ifeq ($(CONAN_BUILD_POLICY_CASCADE),y)
+CONAN_BUILD_POLICY = cascade
+else ifeq ($(CONAN_BUILD_POLICY_ALWAYS),y)
+CONAN_BUILD_POLICY = always
+else ifeq ($(CONAN_BUILD_POLICY_NEVER),y)
+CONAN_BUILD_POLICY = never
+endif
+
 # Check if package reference contains shared option
 ifneq (,$(findstring shared,$(shell $(CONAN) inspect -a options $($(3)_REFERENCE))))
 $(2)_CONAN_OPTS += -o $(shell echo $($(3)_REFERENCE) | cut -f1 -d/):shared=$$(CONAN_OPTION_SHARED)
+endif
+
+ifneq ($(CONAN_REMOTE_NAME),"")
+CONAN_REMOTE = -r $$(CONAN_REMOTE_NAME)
 endif
 
 #
@@ -122,7 +139,8 @@ define $(2)_BUILD_CMDS
 		-s compiler=$$(CONAN_SETTING_COMPILER) \
 		-s compiler.version=$$(CONAN_SETTING_COMPILER_VERSION) \
 		-g deploy \
-		--build $$($$(PKG)_CONAN_BUILD_POLICY)
+		--build $$(CONAN_BUILD_POLICY) \
+		$$(CONAN_REMOTE)
 endef
 else
 define $(2)_BUILD_CMDS
@@ -134,7 +152,8 @@ define $(2)_BUILD_CMDS
 		-s compiler=$$(CONAN_SETTING_COMPILER) \
 		-s compiler.version=$$(CONAN_SETTING_COMPILER_VERSION) \
 		-g deploy \
-		--build $$($$(PKG)_CONAN_BUILD_POLICY)
+		--build $$(CONAN_BUILD_POLICY) \
+		$$(CONAN_REMOTE)
 endef
 endif
 endif

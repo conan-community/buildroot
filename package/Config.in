@@ -63,6 +63,7 @@ menu "Audio and video applications"
 endmenu
 
 menu "Conan"
+	source "package/conan/Config.in"
 	source "package/conan-zlib/Config.in"
 	source "package/conan-gtest/Config.in"
 endmenu
